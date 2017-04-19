@@ -5,25 +5,26 @@ var gulp = require('gulp'),
     concat = require('gulp-concat'),
     jshint = require('gulp-jshint'),
     cleanCSS = require('gulp-clean-css'),
-    sourcemaps = require('gulp-sourcemaps'),
-    autoprefixer = require('gulp-autoprefixer'),
-    html2js = require('gulp-html2js');
+    autoprefixer = require('gulp-autoprefixer');
 
-// html2js
+var templateCache = require('gulp-angular-templatecache');
+
 gulp.task('html.js', function() {
-    gulp.src(['app/**/*.html'])
-        .pipe(html2js('templates.js', {
-            adapter: 'angular',
-            base: 'templates',
-            name: 'app'
+    return gulp.src('app/**/*.html')
+        .pipe(templateCache({
+            module: 'app',
+            root:'app/' 
         }))
-        .pipe(gulp.dest('dist/'))
+        .pipe(gulp.dest('dist'))
         .pipe(rename({ suffix: '.min' }))
         .pipe(uglify())
         .pipe(gulp.dest('dist/'));
 });
 
+
 gulp.watch(['app/**/*.html'], ['html.js']);
+
+
 
 //css
 gulp.task('css', function() {
@@ -32,11 +33,9 @@ gulp.task('css', function() {
             browsers: ['last 2 versions'],
             cascade: false
         }))
-        .pipe(gulp.dest('dist'))
-        .pipe(sourcemaps.init())
+        .pipe(concat('app.css'))
         .pipe(cleanCSS())
-        .pipe(sourcemaps.write('.'))
-        .pipe(gulp.dest('dist/css'));
+        .pipe(gulp.dest('./dist'));
 });
 
 gulp.watch(['app/**/*.css'], ['css']);
@@ -97,8 +96,31 @@ gulp.task('serviceMinify', function() {
 
 gulp.watch(['app/services/*.js'], ['serviceMinify']);
 
+gulp.task('appMinify', function() {
+    return gulp.src('app/app.js')
+        .pipe(jshint())
+        .pipe(jshint.reporter('default'))
+        .pipe(rename({ suffix: '.min' }))
+        .pipe(uglify().on('error', gutil.log))
+        .pipe(gulp.dest('dist/js'));
+});
+
+gulp.watch(['app/app.js'], ['appMinify']);
+
+gulp.watch(['app/services/*.js'], ['serviceMinify']);
 
 
+var imagemin = require('gulp-imagemin');
+//image
+gulp.task('img', function() {
+    return gulp.src('./img/*')
+        .pipe(imagemin())
+        .pipe(gulp.dest('./dist/images'));
+});
+
+
+
+//web
 var webserver = require("gulp-webserver");
 gulp.task('webserver', function() {
     return gulp.src('./')
@@ -110,13 +132,28 @@ gulp.task('webserver', function() {
             },
             open: 'http://localhost:8080/',
             proxies: [{
-                source: '/yourApi',
-                target: 'http://your host name/yourApi'
+                source: '/marketconditions',
+                target: 'http://qbmf.trenddata.cn/marketconditions'
             }]
         }));
+});
+
+var md5 = require("gulp-md5");
+//发布
+gulp.task('build-js', function() {
+    return gulp.src(["./dist/**/*.min.js", "./dist/*.min.js"])
+        .pipe(concat('app.min.js'))
+        .pipe(md5())
+        .pipe(gulp.dest("./src"));
+});
+
+gulp.task('build-css', function() {
+    return gulp.src("./dist/app.css")
+        .pipe(md5())
+        .pipe(gulp.dest("./src"));
 });
 //默认命令，在cmd中输入gulp
 gulp.task('default', function() {
     //gulp.start('img');
-    gulp.start(['webserver', 'html.js', 'controllerMinify', 'componentMinify', 'directivesMinify', 'serviceMinify', 'css']);
+    gulp.start(['webserver', 'html.js', 'appMinify', 'controllerMinify', 'componentMinify', 'directivesMinify', 'serviceMinify', 'css']);
 });
