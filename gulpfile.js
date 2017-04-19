@@ -13,7 +13,7 @@ gulp.task('html.js', function() {
     return gulp.src('app/**/*.html')
         .pipe(templateCache({
             module: 'app',
-            root:'app/' 
+            root: 'app/'
         }))
         .pipe(gulp.dest('dist'))
         .pipe(rename({ suffix: '.min' }))
@@ -126,7 +126,17 @@ gulp.task('webserver', function() {
     return gulp.src('./')
         .pipe(webserver({
             port: 8080,
-            livereload: false,
+            livereload: {
+                enable: true, // need this set to true to enable livereload
+                filter: function(fileName) {
+                  
+                    if(fileName.indexOf('dist')!==-1){
+                        return true;
+                    }else{
+                        return false;
+                    }
+                }
+            },
             directoryListing: {
                 enable: true
             },
